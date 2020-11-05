@@ -21,7 +21,7 @@ export class MembersService {
         this.members = members;
         return members;
       })
-    );
+    )
   }
 
   getMember(username: string) {
@@ -36,6 +36,14 @@ export class MembersService {
         const index = this.members.indexOf(member);
         this.members[index] = member;
       })
-    );
+    )
+  }
+
+  setMainPhoto(photoId: number) {
+    return this.http.put(this.baseUrl + 'users/set-main-photo/' + photoId, {});
+  }
+
+  deletePhoto(photoId: number) {
+    return this.http.delete(this.baseUrl + 'users/delete-photo/' + photoId);
   }
 }

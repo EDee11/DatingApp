@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,18 +21,13 @@ namespace API.Controllers
             _context = context;
         }
 
-        // localhost:5001/api/register
         [HttpPost("register")]
         public async Task<ActionResult<UserDto>> Register(RegisterDto registerDto)
         {
-            //Is this username exists
-            if (await UserExists(registerDto.Username)) return BadRequest("Username ist taken");
+            if (await UserExists(registerDto.Username)) return BadRequest("Username is taken");
 
-
-            //Create an hmac Object
             using var hmac = new HMACSHA512();
 
-            //Create an User Object from AppUser
             var user = new AppUser
             {
                 UserName = registerDto.Username.ToLower(),
@@ -39,7 +35,6 @@ namespace API.Controllers
                 PasswordSalt = hmac.Key
             };
 
-            //to add an user
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
@@ -50,36 +45,32 @@ namespace API.Controllers
             };
         }
 
-        // localhost:5001/api/login
         [HttpPost("login")]
         public async Task<ActionResult<UserDto>> Login(LoginDto loginDto)
         {
-            // Check if the Username match or exists
             var user = await _context.Users
+                .Include(p => p.Photos)
                 .SingleOrDefaultAsync(x => x.UserName == loginDto.Username);
 
-            if (user == null) return Unauthorized("Invalid Username");
+            if (user == null) return Unauthorized("Invalid username");
 
-            // if loginDto.Passwor is the same with the original hmac
             using var hmac = new HMACSHA512(user.PasswordSalt);
 
             var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(loginDto.Password));
 
-            //if its dont match then return an Unauthorized
             for (int i = 0; i < computedHash.Length; i++)
             {
-                if (computedHash[i] != user.PasswordHash[i]) return Unauthorized("Invalid Password");
+                if (computedHash[i] != user.PasswordHash[i]) return Unauthorized("Invalid password");
             }
 
-            // if its true
             return new UserDto
             {
                 Username = user.UserName,
-                Token = _tokenService.CreateToken(user)
+                Token = _tokenService.CreateToken(user),
+                PhotoUrl = user.Photos.FirstOrDefault(x => x.IsMain)?.Url
             };
         }
 
-        //Methode to check if UserExists
         private async Task<bool> UserExists(string username)
         {
             return await _context.Users.AnyAsync(x => x.UserName == username.ToLower());
