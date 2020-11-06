@@ -10,7 +10,6 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace API.Services
 {
-    
     public class TokenService : ITokenService
     {
         private readonly SymmetricSecurityKey _key;
@@ -21,16 +20,14 @@ namespace API.Services
 
         public string CreateToken(AppUser user)
         {
-            //Adding are Claims
             var claims = new List<Claim>
             {
-                new Claim(JwtRegisteredClaimNames.NameId, user.UserName)
+                new Claim(JwtRegisteredClaimNames.NameId, user.Id.ToString()),
+                new Claim(JwtRegisteredClaimNames.UniqueName, user.UserName),
             };
 
-            //Creating some Credentials
             var creds = new SigningCredentials(_key, SecurityAlgorithms.HmacSha512Signature);
 
-            //Typing how the token are look
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
@@ -38,13 +35,10 @@ namespace API.Services
                 SigningCredentials = creds
             };
 
-            //Needed tokenHandler from JwtSecurityTokenHandler
             var tokenHandler = new JwtSecurityTokenHandler();
 
-            //Create a token
             var token = tokenHandler.CreateToken(tokenDescriptor);
 
-            //Return the writentoken
             return tokenHandler.WriteToken(token);
         }
     }
